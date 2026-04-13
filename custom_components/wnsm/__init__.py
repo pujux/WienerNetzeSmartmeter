@@ -2,6 +2,8 @@
 from homeassistant import core, config_entries
 from homeassistant.core import DOMAIN
 
+from .services import async_setup_services
+
 
 async def async_setup_entry(
         hass: core.HomeAssistant,
@@ -13,5 +15,8 @@ async def async_setup_entry(
 
     # Forward the setup to the sensor platform.
     await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+
+    # Register integration-level services (no-op if already registered).
+    await async_setup_services(hass)
 
     return True
