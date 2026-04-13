@@ -161,7 +161,10 @@ class Importer:
         bewegungsdaten = await self.async_smartmeter.get_bewegungsdaten(self.zaehlpunkt, start, end, self.granularity)
         _LOGGER.debug(f"Mapped historical data: {bewegungsdaten}")
         if bewegungsdaten['unitOfMeasurement'] is None:
-            _LOGGER.warning("Unit of measurement is None! Aborting import...")
+            if not bewegungsdaten.get('values'):
+                _LOGGER.debug("Unit of measurement is None and no values returned - no data to import yet.")
+            else:
+                _LOGGER.warning("Unit of measurement is None but values were returned! Aborting import...")
             return None
         elif bewegungsdaten['unitOfMeasurement'] == 'WH':
             factor = 1e-3
