@@ -1,0 +1,30 @@
+import_statistics:
+  name: Import Statistics
+  description: >
+    Manually import energy statistics for a specific Zählpunkt and date range
+    from the Wiener Netze API. Use this to backfill or repair historical data
+    in the Energy dashboard.
+  fields:
+    zaehlpunkt:
+      name: Zählpunkt
+      description: The Zählpunkt number to import data for.
+      required: true
+      example: "AT0010000000000000001000012345678"
+      selector:
+        text:
+    start_date:
+      name: Start Date
+      description: First day of the range to import (inclusive).
+      required: true
+      example: "2024-01-01"
+      selector:
+        date:
+    end_date:
+      name: End Date
+      description: >
+        Last day of the range to import (inclusive).
+        Defaults to today if not provided.
+      required: false
+      example: "2024-03-31"
+      selector:
+        date:
