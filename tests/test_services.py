@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import DOMAIN as HA_DOMAIN, HomeAssistant
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 
 from custom_components.wnsm.const import CONF_ZAEHLPUNKTE, DOMAIN
@@ -17,13 +17,14 @@ STATISTIC_ID = f"{DOMAIN}:{ZAEHLPUNKT.lower()}"
 
 @pytest.fixture()
 def mock_config(hass: HomeAssistant):
-    """Populate hass.data with a fake config entry for ZAEHLPUNKT."""
-    hass.data.setdefault(HA_DOMAIN, {})
-    hass.data[HA_DOMAIN]["test_entry"] = {
+    """Mock config entries so the service can find credentials for ZAEHLPUNKT."""
+    mock_entry = MagicMock()
+    mock_entry.data = {
         CONF_USERNAME: "user@example.com",
         CONF_PASSWORD: "secret",
         CONF_ZAEHLPUNKTE: [{"zaehlpunktnummer": ZAEHLPUNKT}],
     }
+    hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
 
 
 async def test_service_is_registered(hass: HomeAssistant):

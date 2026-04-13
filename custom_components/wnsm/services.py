@@ -8,7 +8,7 @@ import voluptuous as vol
 from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, UnitOfEnergy
-from homeassistant.core import DOMAIN as HA_DOMAIN, HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 
 from .AsyncSmartmeter import AsyncSmartmeter
@@ -52,9 +52,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Locate credentials for this zaehlpunkt across all config entries
         username: str | None = None
         password: str | None = None
-        for entry_data in hass.data.get(HA_DOMAIN, {}).values():
-            if not isinstance(entry_data, dict):
-                continue
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            entry_data = entry.data
             if any(
                 zp.get("zaehlpunktnummer") == zaehlpunkt
                 for zp in entry_data.get(CONF_ZAEHLPUNKTE, [])
