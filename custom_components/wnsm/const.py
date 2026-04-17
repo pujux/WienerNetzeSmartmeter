@@ -4,6 +4,11 @@
 DOMAIN = "wnsm"
 
 CONF_ZAEHLPUNKTE = "zaehlpunkte"
+CONF_SCAN_INTERVAL = "scan_interval"
+CONF_START_TIME = "start_time"
+DEFAULT_SCAN_INTERVAL = 6
+DEFAULT_START_TIME = "00:00"
+SCAN_INTERVAL_OPTIONS = [1, 2, 3, 4, 6, 8, 12, 24]
 
 ATTRS_ZAEHLPUNKT_CALL = [
     ("zaehlpunktnummer", "zaehlpunktnummer"),

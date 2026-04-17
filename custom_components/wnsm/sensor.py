@@ -2,7 +2,6 @@
 WienerNetze Smartmeter sensor platform
 """
 import collections.abc
-from datetime import timedelta
 from typing import Optional
 
 import homeassistant.helpers.config_validation as cv
@@ -21,10 +20,8 @@ from homeassistant.helpers.typing import (
     ConfigType,
     DiscoveryInfoType,
 )
-from .const import CONF_ZAEHLPUNKTE
+from .const import CONF_ZAEHLPUNKTE, CONF_SCAN_INTERVAL, CONF_START_TIME, DEFAULT_SCAN_INTERVAL, DEFAULT_START_TIME
 from .wnsm_sensor import WNSMSensor
-# Time between updating data from Wiener Netze
-SCAN_INTERVAL = timedelta(minutes=60 * 6)
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_USERNAME): cv.string,
@@ -41,8 +38,11 @@ async def async_setup_entry(
 ):
     """Setup sensors from a config entry created in the integrations UI."""
     config = hass.data[DOMAIN][config_entry.entry_id]
+    options = config_entry.options
+    scan_interval = options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    start_time = options.get(CONF_START_TIME, DEFAULT_START_TIME)
     wnsm_sensors = [
-        WNSMSensor(config[CONF_USERNAME], config[CONF_PASSWORD], zp["zaehlpunktnummer"])
+        WNSMSensor(config[CONF_USERNAME], config[CONF_PASSWORD], zp["zaehlpunktnummer"], scan_interval, start_time)
         for zp in config[CONF_ZAEHLPUNKTE]
     ]
     async_add_entities(wnsm_sensors, update_before_add=True)

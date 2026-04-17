@@ -12,7 +12,21 @@
         "data": {
           "username": "Username",
           "password": "Password"
-        }        
+        }
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_time_format": "Invalid time format. Use HH:MM (e.g. 06:00)"
+    },
+    "step": {
+      "init": {
+        "title": "Update Schedule",
+        "data": {
+          "scan_interval": "Update interval (hours)",
+          "start_time": "Start time (HH:MM)"
+        }
       }
     }
   }

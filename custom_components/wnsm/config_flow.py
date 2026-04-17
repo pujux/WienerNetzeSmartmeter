@@ -10,7 +10,11 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 
 from .api import Smartmeter
-from .const import ATTRS_ZAEHLPUNKTE_CALL, DOMAIN, CONF_ZAEHLPUNKTE
+from .const import (
+    ATTRS_ZAEHLPUNKTE_CALL, DOMAIN, CONF_ZAEHLPUNKTE,
+    CONF_SCAN_INTERVAL, CONF_START_TIME,
+    DEFAULT_SCAN_INTERVAL, DEFAULT_START_TIME, SCAN_INTERVAL_OPTIONS,
+)
 from .utils import translate_dict
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,10 +24,33 @@ AUTH_SCHEMA = vol.Schema(
 )
 
 
+class WNSMOptionsFlowHandler(config_entries.OptionsFlow):
+    async def async_step_init(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            start_time = user_input.get(CONF_START_TIME, "")
+            parts = start_time.split(":")
+            if len(parts) != 2 or not all(p.isdigit() for p in parts) or not (0 <= int(parts[0]) <= 23 and 0 <= int(parts[1]) <= 59):
+                errors[CONF_START_TIME] = "invalid_time_format"
+            else:
+                return self.async_create_entry(title="", data=user_input)
+
+        current = self.config_entry.options
+        schema = vol.Schema({
+            vol.Optional(CONF_SCAN_INTERVAL, default=current.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)): vol.In(SCAN_INTERVAL_OPTIONS),
+            vol.Optional(CONF_START_TIME, default=current.get(CONF_START_TIME, DEFAULT_START_TIME)): cv.string,
+        })
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
+
+
 class WienerNetzeSmartMeterCustomConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Wiener Netze Smartmeter config flow"""
 
     data: Optional[dict[str, Any]]
+
+    @staticmethod
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> config_entries.OptionsFlow:
+        return WNSMOptionsFlowHandler()
 
     async def validate_auth(self, username: str, password: str) -> list[dict]:
         """

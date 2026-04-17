@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime
+import math
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from homeassistant.components.sensor import (
@@ -9,15 +10,30 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import UnitOfEnergy
+from homeassistant.helpers.event import async_track_point_in_time
+from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .AsyncSmartmeter import AsyncSmartmeter
 from .api import Smartmeter
 from .api.constants import ValueType
+from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_START_TIME
 from .importer import Importer
 from .utils import before, today
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def next_scheduled_time(start_time: str, interval_hours: int) -> datetime:
+    now = dt_util.now()
+    h, m = map(int, start_time.split(":"))
+    start_today = now.replace(hour=h, minute=m, second=0, microsecond=0)
+    if start_today > now:
+        return start_today
+    elapsed_secs = (now - start_today).total_seconds()
+    interval_secs = timedelta(hours=interval_hours).total_seconds()
+    n = math.ceil(elapsed_secs / interval_secs)
+    return start_today + timedelta(hours=interval_hours) * max(n, 1)
 
 
 class WNSMSensor(SensorEntity):
@@ -29,11 +45,13 @@ class WNSMSensor(SensorEntity):
     def _icon(self) -> str:
         return "mdi:flash"
 
-    def __init__(self, username: str, password: str, zaehlpunkt: str) -> None:
+    def __init__(self, username: str, password: str, zaehlpunkt: str, scan_interval_hours: int = DEFAULT_SCAN_INTERVAL, start_time: str = DEFAULT_START_TIME) -> None:
         super().__init__()
         self.username = username
         self.password = password
         self.zaehlpunkt = zaehlpunkt
+        self._scan_interval_hours = scan_interval_hours
+        self._start_time = start_time
 
         self._attr_native_value: int | float | None = 0
         self._attr_extra_state_attributes = {}
@@ -47,6 +65,7 @@ class WNSMSensor(SensorEntity):
         self._name: str = zaehlpunkt
         self._available: bool = True
         self._updatets: str | None = None
+        self._unsub_update = None
 
     @property
     def get_state(self) -> Optional[str]:
@@ -77,6 +96,27 @@ class WNSMSensor(SensorEntity):
 
     def granularity(self) -> ValueType:
         return ValueType.from_str(self._attr_extra_state_attributes.get("granularity", "QUARTER_HOUR"))
+
+    async def async_added_to_hass(self) -> None:
+        self._schedule_next_update()
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._unsub_update:
+            self._unsub_update()
+            self._unsub_update = None
+
+    def _schedule_next_update(self) -> None:
+        if self._unsub_update:
+            self._unsub_update()
+        next_time = next_scheduled_time(self._start_time, self._scan_interval_hours)
+        self._unsub_update = async_track_point_in_time(
+            self.hass, self._scheduled_update, next_time
+        )
+
+    async def _scheduled_update(self, now: datetime) -> None:
+        await self.async_update()
+        self.async_write_ha_state()
+        self._schedule_next_update()
 
     async def async_update(self):
         """
